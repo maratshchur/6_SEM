@@ -2,7 +2,6 @@
 #include <stdlib.h>
 
 void reverse_stream(FILE *input, FILE *output) {
-    // Ограничение на объем данных (например, 1 МБ)
     const size_t BUFFER_SIZE = 1024 * 1024;
     char *buffer = (char *)malloc(BUFFER_SIZE);
 
