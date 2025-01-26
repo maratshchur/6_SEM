@@ -1,0 +1,9 @@
+Token: REAL       Lexeme: REAL       Line: 1, Column: 4, ID: 1
+Token: COMMA      Lexeme: ,          Line: 1, Column: 5, ID: 2
+Token: IDENT      Lexeme: DIMENSION  Line: 1, Column: 15, ID: 3
+Token: LPAREN     Lexeme: (          Line: 1, Column: 16, ID: 4
+Token: ICONST     Lexeme: 3          Line: 1, Column: 17, ID: 5
+Token: RPAREN     Lexeme: )          Line: 1, Column: 18, ID: 6
+Token: DCOLON     Lexeme: ::         Line: 1, Column: 21, ID: 7
+Token: IDENT      Lexeme: array      Line: 1, Column: 27, ID: 8
+Error: Unknown operator: : at line 1, column 29, ID: 9
