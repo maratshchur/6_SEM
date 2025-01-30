@@ -15,13 +15,14 @@ void *receive_messages(void *socket) {
 
     while ((bytes_received = recv(sock, buffer, BUFFER_SIZE, 0)) > 0) {
         buffer[bytes_received] = '\0';
-        printf("%s", buffer);
+
+        printf("Received message: %s", buffer);
+
     }
 
     printf("Disconnected from server\n");
     pthread_exit(NULL);
 }
-
 int main() {
     int client_socket;
     struct sockaddr_in server_addr;
@@ -60,3 +61,5 @@ int main() {
     pthread_cancel(thread);
     return 0;
 }
+
+// ./server

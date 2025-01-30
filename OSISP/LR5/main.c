@@ -28,7 +28,6 @@ void *sort_part(void *arg) {
     pthread_exit(NULL);
 }
 
-// Function to merge sorted parts of the array
 void merge(int *array, int start, int mid, int end) {
     int size1 = mid - start + 1;
     int size2 = end - mid;
@@ -74,12 +73,9 @@ int main() {
     srand(time(NULL));
 
     // Fill the array with random numbers
-    printf("Original array: ");
     for (int i = 0; i < size; i++) {
         array[i] = rand() % 100000;
-        printf("%d ", array[i]);
     }
-    printf("\n");
 
     pthread_t threads[num_threads];
     ThreadData thread_data[num_threads];
@@ -109,17 +105,25 @@ int main() {
 
     end_time = clock(); // Stop measuring time
 
-    // Output sorted array
-    printf("Sorted array: ");
-    for (int i = 0; i < size; i++) {
-        printf("%d ", array[i]);
+    // Write sorted array to file
+    FILE *file = fopen("sorted_array.txt", "w");
+    if (file == NULL) {
+        perror("Error opening file");
+        free(array);
+        return -1;
     }
-    printf("\n");
+
+    for (int i = 0; i < size; i++) {
+        fprintf(file, "%d\n", array[i]);
+    }
+
+    fclose(file); // Close the file
 
     double elapsed_time = (double)(end_time - start_time) / CLOCKS_PER_SEC;
     printf("Sorting time: %f seconds\n", elapsed_time);
 
-
     free(array);
     return 0;
 }
+
+//   ./main

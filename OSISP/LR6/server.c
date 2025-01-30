@@ -70,6 +70,13 @@ int main() {
         exit(1);
     }
 
+    int opt = 1;
+    if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+        perror("setsockopt failed");
+        close(server_socket);
+        exit(1);
+    }
+
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = INADDR_ANY;
     server_addr.sin_port = htons(PORT);
@@ -127,3 +134,5 @@ int main() {
     close(server_socket);
     return 0;
 }
+
+// ./server
