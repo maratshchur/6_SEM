@@ -10,4 +10,10 @@ EXCEPTION
         RETURN 'ID not found.';
 END;
 
-SELECT generate_insert_command(100000) AS result;
+DECLARE
+    insert_command VARCHAR2(100); -- или другой подходящий размер
+BEGIN
+    insert_command := generate_insert_command(100000);
+    
+    DBMS_OUTPUT.PUT_LINE(insert_command);
+END;

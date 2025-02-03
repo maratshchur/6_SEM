@@ -14,4 +14,9 @@ BEGIN
     END IF;
 END;
 
-SELECT check_even_odd() AS result FROM dual;
+DECLARE
+    result VARCHAR2(10);
+BEGIN
+    result := check_even_odd();
+    DBMS_OUTPUT.PUT_LINE('Результат: ' || result);
+END;

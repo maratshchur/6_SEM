@@ -16,19 +16,37 @@ BEGIN
     COMMIT;
 END;
 
-call insert_into_mytable(11000, 17);
+DECLARE
+    v_val NUMBER; 
+BEGIN
+    insert_into_mytable(11000, 17);
 
-select val from MyTable
-where id = 11000;
+    BEGIN
+        SELECT val INTO v_val FROM MyTable WHERE id = 11000;
+        DBMS_OUTPUT.PUT_LINE('Значение после вставки: ' || v_val);
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            DBMS_OUTPUT.PUT_LINE('Запись не найдена после вставки.');
+    END;
 
-call update_mytable(11000, 18);
+    update_mytable(11000, 18);
 
+    BEGIN
+        SELECT val INTO v_val FROM MyTable WHERE id = 11000;
+        DBMS_OUTPUT.PUT_LINE('Значение после обновления: ' || v_val);
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            DBMS_OUTPUT.PUT_LINE('Запись не найдена после обновления.');
+    END;
 
-select val from MyTable
-where id = 11000;
+    delete_from_mytable(11000);
 
-call delete_from_mytable(11000);
+    BEGIN
+        SELECT val INTO v_val FROM MyTable WHERE id = 11000;
+        DBMS_OUTPUT.PUT_LINE('Запись все еще существует после удаления: ' || v_val);
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            DBMS_OUTPUT.PUT_LINE('Запись успешно удалена.');
+    END;
 
-
-select val from MyTable
-where id = 11000;
+END;

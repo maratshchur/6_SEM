@@ -10,4 +10,13 @@ BEGIN
     RETURN v_total_reward;
 END;
 
-select calculate_total_reward(10,5) as result;
+DECLARE
+    v_result NUMBER;
+BEGIN
+    v_result := calculate_total_reward(10, 5);
+    
+    DBMS_OUTPUT.PUT_LINE('Общая награда: ' || v_result);
+EXCEPTION
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('Ошибка: ' || SQLERRM);
+END;
