@@ -1,51 +1,55 @@
-CREATE OR REPLACE PROCEDURE restore_students(
-    p_time TIMESTAMP,
-    p_offset INTERVAL DAY TO SECOND DEFAULT NULL
+CREATE OR REPLACE PROCEDURE RESTORE_STUDENTS_STATE(
+    target_time TIMESTAMP,
+    time_offset NUMBER DEFAULT NULL
 ) AS
-    v_adjusted_time TIMESTAMP;
-    v_students_count NUMBER;
 BEGIN
-    -- Если указано временное смещение, вычисляем новое время
-    IF p_offset IS NOT NULL THEN
-        v_adjusted_time := p_time + p_offset;
-    ELSE
-        v_adjusted_time := p_time;
-    END IF;
-
-    -- Очищаем текущую таблицу STUDENTS
     DELETE FROM STUDENTS;
 
-    -- Восстанавливаем данные из журнала на указанное время
-    FOR rec IN (
-        SELECT STUDENT_ID, ACTION, NEW_NAME, NEW_GROUP_ID, OLD_NAME, OLD_GROUP_ID
-        FROM STUDENTS_LOG
-        WHERE ACTION_TIMESTAMP <= v_adjusted_time
-        ORDER BY ACTION_TIMESTAMP DESC
+    INSERT INTO STUDENTS (ID, NAME, GROUP_ID)
+    SELECT STUDENT_ID, NEW_NAME, NEW_GROUP_ID
+    FROM STUDENTS_LOG
+    WHERE ACTION = 'INSERT'
+      AND ACTION_TIMESTAMP <= NVL(target_time - NUMTODSINTERVAL(time_offset, 'SECOND'), target_time);
+
+    FOR upd_rec IN (
+        SELECT * FROM STUDENTS_LOG
+        WHERE ACTION = 'UPDATE'
+          AND ACTION_TIMESTAMP <= NVL(target_time - NUMTODSINTERVAL(time_offset, 'SECOND'), target_time)
+        ORDER BY ACTION_TIMESTAMP
     ) LOOP
-        IF rec.ACTION = 'INSERT' THEN
-            INSERT INTO STUDENTS (ID, NAME, GROUP_ID) 
-            VALUES (rec.STUDENT_ID, rec.NEW_NAME, rec.NEW_GROUP_ID);
-        ELSIF rec.ACTION = 'UPDATE' THEN
-            INSERT INTO STUDENTS (ID, NAME, GROUP_ID) 
-            VALUES (rec.STUDENT_ID, rec.OLD_NAME, rec.OLD_GROUP_ID);
-        ELSIF rec.ACTION = 'DELETE' THEN
-            -- Если запись была удалена, её следует восстановить
-            INSERT INTO STUDENTS (ID, NAME, GROUP_ID) 
-            VALUES (rec.STUDENT_ID, rec.OLD_NAME, rec.OLD_GROUP_ID);
-        END IF;
+        UPDATE STUDENTS
+        SET NAME = upd_rec.NEW_NAME,
+            GROUP_ID = upd_rec.NEW_GROUP_ID
+        WHERE ID = upd_rec.STUDENT_ID;
     END LOOP;
 
-    COMMIT;
-
-    -- Проверка восстановленных данных
-    SELECT COUNT(*) INTO v_students_count FROM STUDENTS;
-    DBMS_OUTPUT.PUT_LINE('Restored ' || v_students_count || ' students to the state as of ' || v_adjusted_time);
+    DELETE FROM STUDENTS
+    WHERE ID IN (
+        SELECT STUDENT_ID
+        FROM STUDENTS_LOG
+        WHERE ACTION = 'DELETE'
+          AND ACTION_TIMESTAMP <= NVL(target_time - NUMTODSINTERVAL(time_offset, 'SECOND'), target_time)
+    );
 END;
 
--- -- Пример использования процедуры
--- DECLARE
---     restore_time TIMESTAMP := SYSTIMESTAMP - INTERVAL '1' HOUR; -- Восстановление данных на 1 час назад
+-- INSERT INTO STUDENTS_LOG (STUDENT_ID, ACTION, ACTION_TIMESTAMP, OLD_NAME, NEW_NAME, OLD_GROUP_ID, NEW_GROUP_ID)
+-- VALUES (1, 'INSERT', SYSTIMESTAMP - INTERVAL '5' MINUTE, NULL, 'Alice', NULL, 101);
+
+-- INSERT INTO STUDENTS_LOG (STUDENT_ID, ACTION, ACTION_TIMESTAMP, OLD_NAME, NEW_NAME, OLD_GROUP_ID, NEW_GROUP_ID)
+-- VALUES (2, 'INSERT', SYSTIMESTAMP - INTERVAL '4' MINUTE, NULL, 'Bob', NULL, 102);
+
+-- INSERT INTO STUDENTS_LOG (STUDENT_ID, ACTION, ACTION_TIMESTAMP, OLD_NAME, NEW_NAME, OLD_GROUP_ID, NEW_GROUP_ID)
+-- VALUES (1, 'UPDATE', SYSTIMESTAMP - INTERVAL '3' MINUTE, 'Alice', 'Alice Smith', 101, 201);
+
+-- INSERT INTO STUDENTS_LOG (STUDENT_ID, ACTION, ACTION_TIMESTAMP, OLD_NAME, NEW_NAME, OLD_GROUP_ID, NEW_GROUP_ID)
+-- VALUES (2, 'UPDATE', SYSTIMESTAMP - INTERVAL '2' MINUTE, 'Bob', 'Bob Brown', 102, 202);
+
+-- INSERT INTO STUDENTS_LOG (STUDENT_ID, ACTION, ACTION_TIMESTAMP, OLD_NAME, NEW_NAME, OLD_GROUP_ID, NEW_GROUP_ID)
+-- VALUES (1, 'DELETE', SYSTIMESTAMP - INTERVAL '1' MINUTE, 'Alice Smith', NULL, 201, NULL);
+
+
 -- BEGIN
---     restore_students(restore_time);
+--     RESTORE_STUDENTS(SYSTIMESTAMP, NULL);  -- Вызов процедуры
 -- END;
 -- /
+
