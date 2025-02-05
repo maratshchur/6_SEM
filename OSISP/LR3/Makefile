@@ -24,6 +24,6 @@ clean:
 # Тестирование
 test: $(TARGET)
 	@echo "Тестирование..."
-	echo "123456789\nabcdefg\n987654321" | ./$(TARGET) > output.txt
+	echo "1111111\nabcdefg\n222222222" | ./$(TARGET) > output.txt
 	@echo "Результат:"
 	cat output.txt

@@ -49,7 +49,7 @@ END;
 
 
 -- BEGIN
---     RESTORE_STUDENTS(SYSTIMESTAMP, NULL);  -- Вызов процедуры
--- END;
+--     RESTORE_STUDENTS(SYSTIMESTAMP, NULL);
+-- END; 
 -- /
 
