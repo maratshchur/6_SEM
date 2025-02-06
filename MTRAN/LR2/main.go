@@ -168,49 +168,31 @@ func (lx *Lexer) NextToken() LexItem {
 				state = "INSTRING"
 			} else if ch == '(' {
 				lx.stack = append(lx.stack, '(')
-				return LexItem{token: LPAREN, lexeme: "(", line: lx.line, column: lx.column, id: lx.nextID()}
+				return lx.assignID(LPAREN, "(", lx.line, lx.column)
 			} else if ch == ')' {
 				if len(lx.stack) > 0 && lx.stack[len(lx.stack)-1] == '(' {
 					lx.stack = lx.stack[:len(lx.stack)-1]
 				} else {
-					return LexItem{
-						token:  ERR,
-						lexeme: fmt.Sprintf("Unmatched closing parenthesis: ')'", ch),
-						line:   lx.line,
-						column: lx.column,
-						id:     lx.nextID(),
-					}
+					return lx.errorLexeme(fmt.Sprintf("Unmatched closing parenthesis: ')'", ch), lx.line, lx.column)
 				}
-				return LexItem{token: RPAREN, lexeme: ")", line: lx.line, column: lx.column, id: lx.nextID()}
+				return lx.assignID(RPAREN, ")", lx.line, lx.column)
 			} else if ch == '[' {
 				lx.stack = append(lx.stack, '[')
-				return LexItem{token: LBRACKET, lexeme: "[", line: lx.line, column: lx.column, id: lx.nextID()}
+				return lx.assignID(LBRACKET, "[", lx.line, lx.column)
 			} else if ch == ']' {
 				if len(lx.stack) > 0 && lx.stack[len(lx.stack)-1] == '[' {
 					lx.stack = lx.stack[:len(lx.stack)-1]
 				} else {
-					return LexItem{
-						token:  ERR,
-						lexeme: fmt.Sprintf("Unmatched closing bracket: ']'"),
-						line:   lx.line,
-						column: lx.column,
-						id:     lx.nextID(),
-					}
+					return lx.errorLexeme("Unmatched closing bracket: ']' at line", lx.line, lx.column)
 				}
-				return LexItem{token: RBRACKET, lexeme: "]", line: lx.line, column: lx.column, id: lx.nextID()}
+				return lx.assignID(RBRACKET, "]", lx.line, lx.column)
 			} else if ch == '!' {
 				state = "COMMENT"
 			} else if strings.ContainsRune("+-*/=<>.,:()%$", rune(ch)) {
 				lx.lexeme = string(ch)
 				state = "SIGN"
 			} else {
-				return LexItem{
-					token:  ERR,
-					lexeme: fmt.Sprintf("Unexpected character: '%c'", ch),
-					line:   lx.line,
-					column: lx.column,
-					id:     lx.nextID(),
-				}
+				return lx.errorLexeme(fmt.Sprintf("Unexpected character: '%c'", ch), lx.line, lx.column)
 			}
 
 		case "INID":
@@ -231,7 +213,7 @@ func (lx *Lexer) NextToken() LexItem {
 			} else {
 				lx.position--
 				lx.column--
-				return lx.constantOrError(ICONST)
+				return lx.assignID(ICONST, lx.lexeme, lx.line, lx.column)
 			}
 
 		case "INREAL":
@@ -240,22 +222,16 @@ func (lx *Lexer) NextToken() LexItem {
 			} else {
 				lx.position--
 				lx.column--
-				return lx.constantOrError(RCONST)
+				return lx.assignID(RCONST, lx.lexeme, lx.line, lx.column)
 			}
 
 		case "INSTRING":
 			if ch == '"' {
 				if len(lx.stack) == 0 || lx.stack[len(lx.stack)-1] != '"' {
-					return LexItem{
-						token:  ERR,
-						lexeme: "Mismatched quotes",
-						line:   lx.line,
-						column: lx.column,
-						id:     lx.nextID(),
-					}
+					return lx.errorLexeme("Mismatched quotes", lx.line, lx.column)
 				}
 				lx.stack = lx.stack[:len(lx.stack)-1]
-				return LexItem{token: SCONST, lexeme: lx.lexeme, line: lx.line, column: lx.column, id: lx.nextID()}
+				return lx.assignID(SCONST, lx.lexeme, lx.line, lx.column)
 			}
 			lx.lexeme += string(ch)
 
@@ -269,19 +245,19 @@ func (lx *Lexer) NextToken() LexItem {
 		case "SIGN":
 			if lx.lexeme == ":" && ch == ':' {
 				lx.lexeme += string(ch)
-				return LexItem{token: DCOLON, lexeme: lx.lexeme, line: lx.line, column: lx.column, id: lx.nextID()}
+				return lx.assignID(DCOLON, lx.lexeme, lx.line, lx.column)
 			} else if lx.lexeme == "=" && ch == '=' {
 				lx.lexeme += string(ch)
-				return LexItem{token: EQ, lexeme: lx.lexeme, line: lx.line, column: lx.column, id: lx.nextID()}
+				return lx.assignID(EQ, lx.lexeme, lx.line, lx.column)
 			} else if lx.lexeme == "<" && ch == '=' {
 				lx.lexeme += string(ch)
-				return LexItem{token: LEQ, lexeme: lx.lexeme, line: lx.line, column: lx.column, id: lx.nextID()}
+				return lx.assignID(LEQ, lx.lexeme, lx.line, lx.column)
 			} else if lx.lexeme == ">" && ch == '=' {
 				lx.lexeme += string(ch)
-				return LexItem{token: GEQ, lexeme: lx.lexeme, line: lx.line, column: lx.column, id: lx.nextID()}
+				return lx.assignID(GEQ, lx.lexeme, lx.line, lx.column)
 			} else if lx.lexeme == "/" && ch == '=' {
 				lx.lexeme += string(ch)
-				return LexItem{token: NEQ, lexeme: lx.lexeme, line: lx.line, column: lx.column, id: lx.nextID()}
+				return lx.assignID(NEQ, lx.lexeme, lx.line, lx.column)
 			} else {
 				lx.position--
 				lx.column--
@@ -292,13 +268,7 @@ func (lx *Lexer) NextToken() LexItem {
 
 	if len(lx.stack) > 0 {
 		unmatched := lx.stack[len(lx.stack)-1]
-		return LexItem{
-			token:  ERR,
-			lexeme: fmt.Sprintf("Unmatched delimiter: '%c'", unmatched),
-			line:   lx.line,
-			column: lx.column,
-			id:     lx.nextID(),
-		}
+		return lx.errorLexeme(fmt.Sprintf("Unmatched delimiter: '%c'", unmatched), lx.line, lx.column)
 	}
 
 	return LexItem{token: DONE, lexeme: "", line: lx.line, column: lx.column, id: lx.nextID()}
@@ -307,13 +277,7 @@ func (lx *Lexer) NextToken() LexItem {
 func (lx *Lexer) identOrKeyword() LexItem {
 	isValid, errMsg := isValidIdentifier(lx.lexeme)
 	if !isValid {
-		return LexItem{
-			token:  ERR,
-			lexeme: fmt.Sprintf("Invalid identifier: %s (%s)", lx.lexeme, errMsg),
-			line:   lx.line,
-			column: lx.column,
-			id:     lx.nextID(),
-		}
+		return lx.errorLexeme(fmt.Sprintf("Invalid identifier: %s (%s)", lx.lexeme, errMsg), lx.line, lx.column)
 	}
 
 	keywords := map[string]Token{
@@ -341,32 +305,29 @@ func (lx *Lexer) identOrKeyword() LexItem {
 	}
 	token, found := keywords[strings.ToUpper(lx.lexeme)]
 	if found {
-		return LexItem{
-			token:  token,
-			lexeme: lx.lexeme,
-			line:   lx.line,
-			column: lx.column,
-			id:     lx.nextID(),
-		}
+		return lx.assignID(token, lx.lexeme, lx.line, lx.column)
 	}
 
-	return lx.assignID(IDENT, lx.lexeme)
+	return lx.assignID(IDENT, lx.lexeme, lx.line, lx.column)
 }
 
-func (lx *Lexer) constantOrError(tokenType Token) LexItem {
-	if tokenType == ICONST {
-		return lx.assignID(ICONST, lx.lexeme)
-	}
-	return lx.assignID(RCONST, lx.lexeme)
-}
-
-func (lx *Lexer) assignID(token Token, lexeme string) LexItem {
+func (lx *Lexer) assignID(token Token, lexeme string, line, column int) LexItem {
 	if id, found := lx.idMap[lexeme]; found {
-		return LexItem{token: token, lexeme: lexeme, line: lx.line, column: lx.column, id: id}
+		return LexItem{token: token, lexeme: lexeme, line: line, column: column, id: id}
 	}
 	lx.constID++
 	lx.idMap[lexeme] = lx.constID
-	return LexItem{token: token, lexeme: lexeme, line: lx.line, column: lx.column, id: lx.constID}
+	return LexItem{token: token, lexeme: lexeme, line: line, column: column, id: lx.constID}
+}
+
+func (lx *Lexer) errorLexeme(message string, line, column int) LexItem {
+	return LexItem{
+		token:  ERR,
+		lexeme: message,
+		line:   line,
+		column: column,
+		id:     lx.nextID(),
+	}
 }
 
 func (lx *Lexer) operatorOrError() LexItem {
@@ -387,15 +348,9 @@ func (lx *Lexer) operatorOrError() LexItem {
 	}
 	token, found := operators[lx.lexeme]
 	if found {
-		return LexItem{token: token, lexeme: lx.lexeme, line: lx.line, column: lx.column, id: lx.nextID()}
+		return lx.assignID(token, lx.lexeme, lx.line, lx.column)
 	}
-	return LexItem{
-		token:  ERR,
-		lexeme: fmt.Sprintf("Unknown operator: %s", lx.lexeme),
-		line:   lx.line,
-		column: lx.column,
-		id:     lx.nextID(),
-	}
+	return lx.errorLexeme(fmt.Sprintf("Unknown operator: %s", lx.lexeme), lx.line, lx.column)
 }
 
 func (lx *Lexer) nextID() int {
@@ -418,7 +373,7 @@ func isValidIdentifier(lexeme string) (bool, string) {
 		}
 	}
 
-	return true, "" 
+	return true, ""
 }
 
 func main() {
@@ -451,7 +406,7 @@ func main() {
 		}
 		if token.token == ERR {
 			fmt.Fprintf(outputFile, "Error: %s at line %d, column %d, ID: %d\n", token.lexeme, token.line, token.column, token.id)
-			return 
+			return
 		}
 		fmt.Fprintf(outputFile, "Token: %-10s Lexeme: %-10s Line: %d, Column: %d, ID: %d\n", tokenMap[token.token], token.lexeme, token.line, token.column, token.id)
 	}
