@@ -1,3 +1,1 @@
-Hello, world!
-Some text
-abcdefg 1010
+Hello world

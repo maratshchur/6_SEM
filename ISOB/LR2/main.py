@@ -2,14 +2,16 @@ from caesar_cipher import caesar_cipher
 from vigenere_cipher import vigenere_cipher
 
 def main():
-    # Запрашиваем название файла
     filename = input("Введите название файла (например, input.txt): ")
     
     try:
-        with open(filename, "r") as file:
+        with open(filename, "r", encoding="utf-8") as file:
             input_text = file.read()
     except FileNotFoundError:
         print(f"Файл '{filename}' не найден.")
+        return
+    except UnicodeDecodeError:
+        print(f"Ошибка декодирования файла '{filename}'. Проверьте кодировку файла.")
         return
 
     action_choice = input("Выберите действие (1 - Зашифровать, 2 - Расшифровать): ")
@@ -29,7 +31,7 @@ def main():
             print("Некорректный выбор метода шифрования.")
             return
 
-        with open(ciphered_filename, "w") as file:
+        with open(ciphered_filename, "w", encoding="utf-8") as file:
             file.write(ciphered_text)
         print(f"Зашифрованный текст записан в файл: {ciphered_filename}")
 
@@ -48,7 +50,7 @@ def main():
             print("Некорректный выбор метода расшифрования.")
             return
 
-        with open(deciphered_filename, "w") as file:
+        with open(deciphered_filename, "w", encoding="utf-8") as file:
             file.write(deciphered_text)
         print(f"Расшифрованный текст записан в файл: {deciphered_filename}")
 
