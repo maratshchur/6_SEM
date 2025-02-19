@@ -61,11 +61,11 @@ def main():
     print(compute_modified_inverse(inverse_b, vector_y, index_j))
 
     # Необратимая матрица
-    # matrix_c = np.array([[2, 1], [4, 1]])
-    # inverse_c = np.linalg.inv(matrix_c)
-    # vector_z = np.array([1,2])
-    # index_k = 1
-    # print(compute_modified_inverse(inverse_c, vector_z, index_k))
+    matrix_c = np.array([[2, 1], [4, 1]])
+    inverse_c = np.linalg.inv(matrix_c)
+    vector_z = np.array([1,2])
+    index_k = 1
+    print(compute_modified_inverse(inverse_c, vector_z, index_k))
 
 if __name__ == "__main__":
     main()

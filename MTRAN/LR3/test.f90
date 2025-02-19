@@ -7,7 +7,7 @@ module Geometry
 
 contains
 
-    function distance(p1, p2) result(d)
+    function distance(p1,) result(d)
 
       INTEGER :: a
       REAL :: b
