@@ -752,7 +752,7 @@ func (p *Parser) parseDoLoop() *ASTNode {
 		condition := NewASTNode("Condition", p.curTok.lexeme)
 		conditionNode.AddChild(condition)
 		p.nextToken()
-		exprNode := p.parseExpression()
+		exprNode := p.parseBracketExpression()
 		conditionNode.AddChild(exprNode)
 		p.nextToken()
 
@@ -799,6 +799,13 @@ func (p *Parser) parsePrintStatement() *ASTNode {
 	}
 	printNode.AddChild(argsNode)
 	return printNode
+}
+
+// Парсинг выражений
+func (p *Parser) parseExpression() *ASTNode {
+	expr := NewASTNode("Expression", p.curTok.lexeme)
+	p.nextToken()
+	return expr
 }
 
 func (p *Parser) parseTypeDefinition() *ASTNode {
@@ -881,7 +888,7 @@ func (p *Parser) parseIfStatement() *ASTNode {
 	p.nextToken()
 
 	// Условие
-	conditionNode := p.parseExpression()
+	conditionNode := p.parseBracketExpression()
 	ifNode.AddChild(conditionNode)
 	p.nextToken()
 
@@ -986,11 +993,85 @@ func (p *Parser) parseCaseExpression() *ASTNode {
 	return exprNode
 }
 
-// Парсинг выражений
-func (p *Parser) parseExpression() *ASTNode {
-	expr := NewASTNode("Expression", p.curTok.lexeme)
-	p.nextToken()
-	return expr
+func (p *Parser) parseBracketExpression() *ASTNode {
+	return p.parseBinaryExpression(0)
+}
+
+func (p *Parser) parseBinaryExpression(minPrecedence int) *ASTNode {
+	left := p.parsePrimaryExpression()
+
+	for {
+		if p.curTok.token == RPAREN {
+			break
+		}
+		opToken := p.curTok.token
+		precedence := getOperatorPrecedence(opToken)
+		if precedence < minPrecedence {
+			break
+		}
+
+		// Пропускаем оператор
+		opNode := NewASTNode("Operator", tokenMap[opToken])
+		p.nextToken()
+
+		// Рекурсивно парсим правую часть выражения
+		right := p.parseBinaryExpression(precedence + 1)
+		opNode.AddChild(left)
+		opNode.AddChild(right)
+
+		left = opNode
+	}
+
+	return left
+}
+
+// parsePrimaryExpression - парсит первичные выражения (числа, идентификаторы, скобки)
+func (p *Parser) parsePrimaryExpression() *ASTNode {
+	switch p.curTok.token {
+	case ICONST: // Целочисленные константы
+		node := NewASTNode("IntegerConstant", p.curTok.lexeme)
+		p.nextToken()
+		return node
+	case RCONST: // Вещественные константы
+		node := NewASTNode("RealConstant", p.curTok.lexeme)
+		p.nextToken()
+		return node
+	case SCONST: // Строковые константы
+		node := NewASTNode("StringConstant", p.curTok.lexeme)
+		p.nextToken()
+		return node
+	case IDENT: // Идентификаторы
+		node := NewASTNode("Identifier", p.curTok.lexeme)
+		p.nextToken()
+		return node
+	case LPAREN: // Скобки
+		p.nextToken() // Пропускаем '('
+		expr := p.parseExpression()
+		if p.curTok.token != RPAREN {
+			fmt.Printf("Error: Expected ')' at line %d, column %d\n", p.curTok.line, p.curTok.column)
+			os.Exit(1)
+		}
+		p.nextToken() // Пропускаем ')'
+		return expr
+	default:
+		fmt.Printf("Error: Unexpected token '%s' at line %d, column %d\n", p.curTok.lexeme, p.curTok.line, p.curTok.column)
+		os.Exit(1)
+		return nil
+	}
+}
+
+// getOperatorPrecedence - возвращает приоритет оператора
+func getOperatorPrecedence(token Token) int {
+	switch token {
+	case POW: // Возведение в степень (**)
+		return 3
+	case MULT, DIV: // Умножение и деление (*, /)
+		return 2
+	case PLUS, MINUS: // Сложение и вычитание (+, -)
+		return 1
+	default:
+		return 0 // Неизвестный оператор
+	}
 }
 
 func (p *Parser) parseStatement() *ASTNode {
