@@ -471,7 +471,7 @@ func (p *Parser) nextToken() {
 func (p *Parser) Parse() *ASTNode {
 	for _, item := range p.tokens {
 		if item.token == ERR {
-			fmt.Printf("Error: %s at line %d, column %d, ID: %d\n", item.lexeme, item.line, item.column, item.id)
+			fmt.Printf("Error: %s, at line %d, column %d, ID: %d\n", item.lexeme, item.line, item.column, item.id)
 			return nil
 
 		}
