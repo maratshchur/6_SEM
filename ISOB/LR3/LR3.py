@@ -9,24 +9,24 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 import base64
-
+import secrets
 
 def generate_key():
-    return os.urandom(16)
+    return secrets.token_bytes(16)
 
 
 def encrypt(key, plaintext):
-    iv = os.urandom(16)
-    cipher = Cipher(algorithms.AES(key), modes.CFB(iv), backend=default_backend())
+    iv = os.urandom(12)
+    cipher = Cipher(algorithms.AES(key), modes.GCM(iv), backend=default_backend())
     encryptor = cipher.encryptor()
     ciphertext = encryptor.update(plaintext.encode()) + encryptor.finalize()
-    return iv + ciphertext
-
+    return iv + encryptor.tag + ciphertext
 
 def decrypt(key, ciphertext):
-    iv = ciphertext[:16]
-    ciphertext = ciphertext[16:]
-    cipher = Cipher(algorithms.AES(key), modes.CFB(iv), backend=default_backend())
+    iv = ciphertext[:12]
+    tag = ciphertext[12:28]
+    ciphertext = ciphertext[28:]
+    cipher = Cipher(algorithms.AES(key), modes.GCM(iv, tag), backend=default_backend())
     decryptor = cipher.decryptor()
     return decryptor.update(ciphertext) + decryptor.finalize()
 
@@ -44,19 +44,20 @@ def derive_key_from_password(password, salt):
 
 def hash_password(password, salt):
     kdf = PBKDF2HMAC(
-        algorithm=SHA256(),
-        length=32, 
+        algorithm=hashes.SHA512(),
+        length=32,
         salt=salt,
-        iterations=100000,
+        iterations=200000,
         backend=default_backend()
     )
-    return base64.b64encode(kdf.derive(password.encode())).decode() 
-
+    return base64.b64encode(kdf.derive(password.encode())).decode()
 
 def verify_password(password, salt, hashed_password):
     expected_hash = hash_password(password, salt)
     return hashed_password == expected_hash
 
+
+KDC_SECRET_KEY = generate_key()
 
 KDC_DATABASE = {
     "users": {
@@ -71,40 +72,48 @@ KDC_DATABASE = {
     }
 }
 
+def generate_password(length=12):
+    alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()"
+    return ''.join(secrets.choice(alphabet) for _ in range(length))
+
 for username, user_data in KDC_DATABASE["users"].items():
     salt = user_data["salt"]
-    password = "securepassword123"
+    password = generate_password()
+    print(f"Generated password for {username}: {password}")
     user_data["hashed_password"] = hash_password(password, salt)
     user_data["key"] = derive_key_from_password(password, salt)
 
 
 class KDC:
-    def __init__(self, db):
+    def __init__(self, db, secret_key):
         self.db = db
+        self.secret_key = secret_key  
 
     def authenticate_user(self, username, password):
         if username not in self.db["users"]:
             print("Error: User not found in KDC database!")
             sys.exit(1)
-        user_data = self.db["users"][username]
 
+        user_data = self.db["users"][username]
         if not verify_password(password, user_data["salt"], user_data["hashed_password"]):
             print("Error: Invalid password!")
             sys.exit(1)
 
         session_key = generate_key()
+
         tgt = {
             "username": username,
             "session_key": session_key.hex(),
             "timestamp": int(time.time()),
             "expires_in": 300
         }
-        tgt_encrypted = encrypt(user_data["key"], json.dumps(tgt))
+
+        tgt_encrypted = encrypt(self.secret_key, json.dumps(tgt))
         return tgt_encrypted, session_key
 
     def get_service_ticket(self, tgt_encrypted, service_name):
         try:
-            tgt = json.loads(decrypt(self.db["users"]["user"]["key"], tgt_encrypted).decode())
+            tgt = json.loads(decrypt(self.secret_key, tgt_encrypted).decode())
         except Exception:
             print("Error: Failed to decode TGT!")
             sys.exit(1)
@@ -118,16 +127,18 @@ class KDC:
         if service_name not in self.db["services"]:
             print("Error: Requested service not found!")
             sys.exit(1)
+        
         service_key = self.db["services"][service_name]
 
         service_ticket = {
-            "username": tgt["username"],"session_key": session_key.hex(),
+            "username": tgt["username"],
+            "session_key": session_key.hex(),
             "timestamp": int(time.time()),
             "expires_in": 300
         }
+
         service_ticket_encrypted = encrypt(service_key, json.dumps(service_ticket))
         return service_ticket_encrypted, session_key
-
 
 class Service:
     def __init__(self, service_name, key):
@@ -177,10 +188,10 @@ class Client:
 
 
 if __name__ == "__main__":
-    kdc = KDC(KDC_DATABASE)
+    kdc = KDC(KDC_DATABASE, KDC_SECRET_KEY)
     server = Service("server", KDC_DATABASE["services"]["server"])
 
-    user = Client("user", "securepassword123", kdc)
+    user = Client("user", password, kdc)
 
     try:
         user.authenticate()
