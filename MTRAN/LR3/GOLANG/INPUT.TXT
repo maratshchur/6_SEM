@@ -23,7 +23,6 @@ contains
       end subroutine do_loop_example
 
     function distance(name_in, age_in, height_in) result(person_out)
-    
       integer, intent(in)  age_in
       real, intent(in) :: height_in
       type(person) :: person_out

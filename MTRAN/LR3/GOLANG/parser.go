@@ -536,7 +536,7 @@ func (p *Parser) parseModule() *ASTNode {
 			moduleNode.AddChild(p.parseSubroutine())
 		case CONTAINS:
 			p.nextToken()
-			containsNode := NewASTNode("Contains", "Functions declaration")
+			containsNode := NewASTNode("Contains", "Functions or subroutines declaration")
 			for p.curTok.token != END && p.curTok.token != DONE {
 				if p.curTok.token == FUNCTION {
 					containsNode.AddChild(p.parseFunction())
